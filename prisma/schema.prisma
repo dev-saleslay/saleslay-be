@@ -1,0 +1,301 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum ConnectionChannel {
+  EMAIL
+  SMS
+  RCS
+}
+
+enum ConnectionProvider {
+  TWILIO
+}
+
+enum ConnectionStatus {
+  PENDING
+  CONNECTED
+  FAILED
+}
+
+enum EmailWorkspaceStatus {
+  SKIPPED
+  PENDING
+  PROVISIONING
+  ACTIVE
+  FAILED
+}
+
+enum IntegrationProvider {
+  HUBSPOT
+}
+
+enum EmailMessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum EmailDeliveryProvider {
+  NONE
+  SENDGRID
+  RESEND
+}
+
+/// HubSpot OAuth and portal metadata (one CRM integration per user).
+model CrmIntegration {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String    @unique @db.ObjectId
+  hubSpotPortalId String?
+  accessToken     String
+  refreshToken    String
+  expiresAt       DateTime?
+  scope           String?
+  connectedAt     DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Twilio Account SID + encrypted Auth Token (user-owned or legacy platform row).
+model MessageProviderIntegration {
+  id                 String                    @id @default(auto()) @map("_id") @db.ObjectId
+  userId             String                    @unique @db.ObjectId
+  twilioAccountSid   String
+  /// Encrypted Auth Token; null when workspace is platform-managed (API uses server credentials).
+  authTokenEnc       String?
+  friendlyName       String?
+  workspaceTenancy   MessagingWorkspaceTenancy @default(USER_OWNED)
+  status             MessagingWorkspaceStatus  @default(ACTIVE)
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum MessagingWorkspaceStatus {
+  PENDING
+  PROVISIONING
+  ACTIVE
+  FAILED
+}
+
+enum MessagingWorkspaceTenancy {
+  PLATFORM_MANAGED
+  USER_OWNED
+}
+
+model CompanyProfile {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId             String   @unique @db.ObjectId
+  companyName        String?
+  website            String?
+  industry           String?
+  companySize        String?
+  productName        String?
+  productCategory    String?
+  targetAudience     String?
+  productDescription String?
+  uniqueValue        String?
+  pricing            String?
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Connection {
+  id          String             @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String             @db.ObjectId
+  channel     ConnectionChannel
+  provider    ConnectionProvider @default(TWILIO)
+  status      ConnectionStatus   @default(PENDING)
+  accountSid  String?
+  fromAddress String?
+  fromNumber  String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, channel])
+}
+
+model CrmLead {
+  id           String              @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String              @db.ObjectId
+  provider     IntegrationProvider
+  externalId   String
+  firstName    String?
+  lastName     String?
+  email        String?
+  phone        String?
+  company      String?
+  rawData      String?
+  lastSyncedAt DateTime            @default(now())
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  user                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workflowProgress     WorkflowLeadProgress[]
+  leadAiConversation   LeadAiConversation?
+
+  @@unique([userId, provider, externalId])
+  @@index([userId, provider, email])
+}
+
+model MessagingWorkspace {
+  id                      String                   @id @default(auto()) @map("_id") @db.ObjectId
+  userId                  String                   @unique @db.ObjectId
+  workspaceTenantName     String?
+  externalTenantId        String?
+  workspaceTenancy        MessagingWorkspaceTenancy?
+  providerAuthSecretEnc   String?
+  status                  MessagingWorkspaceStatus @default(PENDING)
+  lastError               String?
+  emailWorkspaceStatus    EmailWorkspaceStatus     @default(SKIPPED)
+  sendgridSubuserUsername String?
+  lastEmailError          String?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Log of inbound (SendGrid Inbound Parse) and outbound (Mail Send API) email per user.
+model EmailMessage {
+  id           String                @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String                @db.ObjectId
+  direction    EmailMessageDirection
+  fromAddress  String
+  toAddress    String
+  subject      String?
+  textBody     String?
+  htmlBody     String?
+  /// SendGrid X-Message-Id when available
+  providerId   String?
+  /// Set when inbound lead / workflow hook has run (webhook or reconcile). Null = pending poll.
+  inboundLeadHookAt DateTime?
+  createdAt    DateTime              @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, direction, inboundLeadHookAt])
+}
+
+/// Per-user email API credentials (SendGrid / Resend). Keys encrypted at rest; not committed to repo.
+model EmailProviderIntegration {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String   @unique @db.ObjectId
+  sendgridApiKeyEnc String?
+  sendgridFromEmail String?
+  /// Hostname for SendGrid Inbound Parse (e.g. inbound.example.com). Full address = sl-{userId}@hostname.
+  sendgridInboundDomain String?
+  resendApiKeyEnc   String?
+  resendFromEmail   String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id                      String                 @id @default(auto()) @map("_id") @db.ObjectId
+  name                    String?
+  email                   String?                @unique
+  image                   String?
+  emailDeliveryProvider   EmailDeliveryProvider  @default(NONE)
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  connections                Connection[]
+  crmIntegration             CrmIntegration?
+  messageProviderIntegration MessageProviderIntegration?
+  emailProviderIntegration   EmailProviderIntegration?
+  crmLeads                   CrmLead[]
+  profile                    UserProfile?
+  companyProfile             CompanyProfile?
+  messagingWorkspace         MessagingWorkspace?
+  emailMessages              EmailMessage[]
+  savedTemplates             UserSavedTemplate[]
+  workflowLeadProgress       WorkflowLeadProgress[]
+  leadAiConversations        LeadAiConversation[]
+}
+
+/// Up to 2 aligned playbook snapshots per user (replaces browser localStorage).
+model UserSavedTemplate {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  /// Source library id: agency | coaching | service | nutic | test_email | test_sms
+  sourceId  String
+  /// Full OneMonthTemplate JSON after AI align + seller token fill
+  template  Json
+  /// Optional sender line applied to all `{{senderName}}` in preview / send (stored separately from template JSON).
+  senderDisplayName String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workflowLeadProgress WorkflowLeadProgress[]
+
+  @@index([userId])
+}
+
+/// Lead is between playbook step 1 and step 2 (waiting for the delayed second send).
+model WorkflowLeadProgress {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String   @db.ObjectId
+  crmLeadId       String   @db.ObjectId
+  savedTemplateId String   @db.ObjectId
+  /// Snapshot of template.categoryTitle for the workflow UI.
+  templateLabel   String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lead          CrmLead           @relation(fields: [crmLeadId], references: [id], onDelete: Cascade)
+  savedTemplate UserSavedTemplate @relation(fields: [savedTemplateId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, crmLeadId])
+  @@index([userId])
+}
+
+/// AI-assisted email thread with a CRM lead (started when the lead replies inbound).
+model LeadAiConversation {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  crmLeadId String   @unique @db.ObjectId
+  /// EMAIL (from SendGrid inbound) — future: SMS.
+  channel   String   @default("EMAIL")
+  /// [{ role: "lead"|"assistant", content: string, createdAt: string }]
+  messages  Json     @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lead CrmLead @relation(fields: [crmLeadId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model UserProfile {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @unique @db.ObjectId
+  fullName    String?
+  phone       String?
+  role        String?
+  location    String?
+  about       String?
+  linkedinUrl String?
+  website     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
