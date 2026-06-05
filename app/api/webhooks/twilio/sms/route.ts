@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { handleInboundSmsFromPossibleLead } from "@/lib/lead-ai/inbound-sms-reply";
+import { enqueueInboundSms } from "@/lib/queue/queues";
 import { phonesMatch } from "@/lib/messaging/phone-match";
 import { twilioRequestSignatureValid } from "@/lib/messaging/twilio-validate-signature";
 import { decryptTwilioAuthToken } from "@/lib/messaging/twilio-token-crypto";
@@ -131,14 +131,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    await handleInboundSmsFromPossibleLead({
+    await enqueueInboundSms({
       userId: hit.userId,
       fromRaw: from,
       body,
       messageSid,
     });
   } catch (e) {
-    console.error("[webhooks/twilio/sms]", e);
+    console.error("[webhooks/twilio/sms] failed to enqueue:", e);
   }
 
   return new NextResponse(EMPTY_TWIML, {

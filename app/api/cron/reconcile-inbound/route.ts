@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { reconcileInboundEmailsGlobal } from "@/lib/lead-ai/reconcile-inbound";
+import { enqueueReconcileInbound } from "@/lib/queue/queues";
 
 /**
  * Schedule with Vercel Cron / external ping every 6h (or as needed).
@@ -16,6 +16,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const result = await reconcileInboundEmailsGlobal();
-  return NextResponse.json({ ok: true, ...result });
+  await enqueueReconcileInbound();
+  return NextResponse.json({ ok: true, message: "Reconciliation job enqueued." });
 }

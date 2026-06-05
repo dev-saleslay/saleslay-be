@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { handleInboundEmailFromPossibleLead } from "@/lib/lead-ai/inbound-email-reply";
+import { enqueueInboundEmail } from "@/lib/queue/queues";
 import { prisma } from "@/lib/prisma";
 import { findUserIdFromInboundToField } from "@/lib/messaging/sendgrid-inbound-address";
 
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
 
   if (claimed.count > 0) {
     try {
-      await handleInboundEmailFromPossibleLead({
+      await enqueueInboundEmail({
         userId,
         fromHeader: fromRaw,
         subject,
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
         emailMessageId: msg.id,
       });
     } catch (e) {
-      console.error("[webhooks/sendgrid/inbound] lead reply / AI hook:", e);
+      console.error("[webhooks/sendgrid/inbound] failed to enqueue email:", e);
       await prisma.emailMessage.update({
         where: { id: msg.id },
         data: { inboundLeadHookAt: null },
