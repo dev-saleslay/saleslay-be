@@ -1,4 +1,4 @@
-import type { OneMonthTemplate } from "@/app/user/dashboard/templates/_lib/one-month-templates";
+import type { OneMonthTemplate } from "@/lib/templates/one-month-templates";
 
 /** Preview / send helper: replace `{{senderName}}` everywhere in recipient-facing copy when user sets a saved-template sender name. */
 export function applySenderDisplayName(template: OneMonthTemplate, senderDisplayName: string): OneMonthTemplate {

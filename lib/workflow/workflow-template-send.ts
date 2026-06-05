@@ -1,4 +1,4 @@
-import type { OneMonthTemplate, OneMonthTemplateStep } from "@/app/user/dashboard/templates/_lib/one-month-templates";
+import type { OneMonthTemplate, OneMonthTemplateStep } from "@/lib/templates/one-month-templates";
 import { applySenderDisplayName } from "@/lib/templates/apply-sender-display-name";
 import { sendUserOutboundEmail } from "@/lib/messaging/send-user-outbound-email";
 import { sendTwilioSms } from "@/lib/messaging/twilio-send-sms";

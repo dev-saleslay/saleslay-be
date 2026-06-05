@@ -1,7 +1,20 @@
-import { getServerSession } from "next-auth";
+import { decode } from "next-auth/jwt";
+import { AsyncLocalStorage } from "node:async_hooks";
 
-import { authOptions } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { DASHBOARD_DUMMY_MODE } from "@/config/dashboard-dummy.config";
+
+export const requestStorage = new AsyncLocalStorage<Request>();
+
+function getCookieValue(cookieHeader: string | null, name: string): string | null {
+  if (!cookieHeader) return null;
+  const cookies = cookieHeader.split(";");
+  for (const cookie of cookies) {
+    const [k, v] = cookie.trim().split("=");
+    if (k === name) return decodeURIComponent(v);
+  }
+  return null;
+}
 
 type HubSpotTokenResponse = {
   token_type: string;
@@ -24,27 +37,62 @@ type HubSpotContactApiResponse = {
 };
 
 export async function getAuthenticatedUser() {
-  const session = await getServerSession(authOptions);
-  const email = session?.user?.email;
+  if (DASHBOARD_DUMMY_MODE) {
+    const email = "preview@saleslay.local";
+    const user = await prisma.user.upsert({
+      where: { email },
+      update: {
+        name: "Preview user",
+      },
+      create: {
+        email,
+        name: "Preview user",
+      },
+    });
+    return user;
+  }
 
-  if (!email) {
+  const request = requestStorage.getStore();
+  if (!request) {
     return null;
   }
 
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: {
-      name: session.user?.name ?? undefined,
-      image: session.user?.image ?? undefined,
-    },
-    create: {
-      email,
-      name: session.user?.name ?? undefined,
-      image: session.user?.image ?? undefined,
-    },
-  });
+  const cookieHeader = request.headers.get("cookie");
+  const token =
+    getCookieValue(cookieHeader, "next-auth.session-token") ||
+    getCookieValue(cookieHeader, "__Secure-next-auth.session-token");
+  if (!token) {
+    return null;
+  }
 
-  return user;
+  try {
+    const decoded = await decode({
+      token,
+      secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "",
+    });
+    const email = decoded?.email;
+    if (!email) {
+      return null;
+    }
+
+    const user = await prisma.user.upsert({
+      where: { email },
+      update: {
+        name: decoded.name ?? undefined,
+        image: decoded.picture ?? undefined,
+      },
+      create: {
+        email,
+        name: decoded.name ?? undefined,
+        image: decoded.picture ?? undefined,
+      },
+    });
+
+    return user;
+  } catch (error) {
+    console.error("[getAuthenticatedUser] Error decoding session token:", error);
+    return null;
+  }
 }
 
 export async function refreshHubSpotAccessToken(userId: string) {

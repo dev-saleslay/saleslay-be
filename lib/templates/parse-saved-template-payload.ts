@@ -1,4 +1,4 @@
-import type { OneMonthTemplate, OneMonthTemplateStep, TemplateChannel } from "@/app/user/dashboard/templates/_lib/one-month-templates";
+import type { OneMonthTemplate, OneMonthTemplateStep, TemplateChannel } from "@/lib/templates/one-month-templates";
 
 const CHANNELS = new Set<TemplateChannel>(["email", "sms", "both", "smart"]);
 const IDS = new Set<OneMonthTemplate["id"]>([

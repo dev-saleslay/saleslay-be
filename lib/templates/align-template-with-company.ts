@@ -1,4 +1,4 @@
-import type { OneMonthTemplate, OneMonthTemplateStep } from "@/app/user/dashboard/templates/_lib/one-month-templates";
+import type { OneMonthTemplate, OneMonthTemplateStep } from "@/lib/templates/one-month-templates";
 
 export type CompanyAlignmentInput = {
   ourCompany: string;

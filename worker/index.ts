@@ -27,7 +27,7 @@ const smsWorker = new Worker(
       throw error;
     }
   },
-  { connection: redisConnection, concurrency: 5 }
+  { connection: redisConnection as any, concurrency: 5 }
 );
 
 // 2. Inbound Email Worker
@@ -58,7 +58,7 @@ const emailWorker = new Worker(
       throw error;
     }
   },
-  { connection: redisConnection, concurrency: 5 }
+  { connection: redisConnection as any, concurrency: 5 }
 );
 
 // 3. Cron Reconcile Worker
@@ -74,7 +74,7 @@ const cronWorker = new Worker(
       throw error;
     }
   },
-  { connection: redisConnection, concurrency: 1 }
+  { connection: redisConnection as any, concurrency: 1 }
 );
 
 // 4. Workflow automation Worker (playbook/sequence automation)
@@ -130,7 +130,7 @@ const workflowWorker = new Worker(
       throw error;
     }
   },
-  { connection: redisConnection, concurrency: 2 }
+  { connection: redisConnection as any, concurrency: 2 }
 );
 
 // Handle global worker events

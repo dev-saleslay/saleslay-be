@@ -1,5 +1,5 @@
-import { cloneOneMonthTemplate } from "@/app/user/dashboard/templates/_lib/align-template-with-company";
-import type { OneMonthTemplate, OneMonthTemplateStep } from "@/app/user/dashboard/templates/_lib/one-month-templates";
+import { cloneOneMonthTemplate } from "@/lib/templates/align-template-with-company";
+import type { OneMonthTemplate, OneMonthTemplateStep } from "@/lib/templates/one-month-templates";
 
 export type TemplateAlignRichContext = {
   companyName: string;
@@ -45,7 +45,7 @@ function buildContextBlock(ctx: TemplateAlignRichContext): string {
 function mergeAiPatches(base: OneMonthTemplate, patches: AiStepPatch[]): OneMonthTemplate {
   const out = cloneOneMonthTemplate(base);
   for (const patch of patches) {
-    const i = out.steps.findIndex((s) => s.step === patch.step);
+    const i = out.steps.findIndex((s: OneMonthTemplateStep) => s.step === patch.step);
     if (i < 0) continue;
     const step = out.steps[i];
     if (typeof patch.title === "string" && patch.title.trim()) {
@@ -104,7 +104,7 @@ export async function maybeAlignTemplateWithOpenAI(
 
   const model = process.env.OPENAI_ALIGN_MODEL?.trim() || "gpt-4o-mini";
 
-  const stepPayload = template.steps.map((s) => ({
+  const stepPayload = template.steps.map((s: OneMonthTemplateStep) => ({
     step: s.step,
     day: s.day,
     channel: s.channel,

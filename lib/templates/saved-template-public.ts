@@ -1,4 +1,4 @@
-import type { OneMonthTemplate } from "@/app/user/dashboard/templates/_lib/one-month-templates";
+import type { OneMonthTemplate } from "@/lib/templates/one-month-templates";
 
 export type PublicSavedTemplate = {
   savedId: string;

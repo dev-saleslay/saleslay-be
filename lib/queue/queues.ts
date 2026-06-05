@@ -3,7 +3,7 @@ import { redisConnection } from "./redis";
 
 // Define Queues
 export const inboundSmsQueue = new Queue("inbound-sms", {
-  connection: redisConnection,
+  connection: redisConnection as any,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
@@ -16,7 +16,7 @@ export const inboundSmsQueue = new Queue("inbound-sms", {
 });
 
 export const inboundEmailQueue = new Queue("inbound-email", {
-  connection: redisConnection,
+  connection: redisConnection as any,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
@@ -29,7 +29,7 @@ export const inboundEmailQueue = new Queue("inbound-email", {
 });
 
 export const cronReconcileQueue = new Queue("cron-reconcile", {
-  connection: redisConnection,
+  connection: redisConnection as any,
   defaultJobOptions: {
     attempts: 1,
     removeOnComplete: true,
@@ -38,7 +38,7 @@ export const cronReconcileQueue = new Queue("cron-reconcile", {
 });
 
 export const workflowQueue = new Queue("workflow", {
-  connection: redisConnection,
+  connection: redisConnection as any,
   defaultJobOptions: {
     attempts: 3,
     backoff: {

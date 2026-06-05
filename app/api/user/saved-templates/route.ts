@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { ONE_MONTH_TEMPLATES, type OneMonthTemplate } from "@/app/user/dashboard/templates/_lib/one-month-templates";
-import { alignTemplateWithCompany } from "@/app/user/dashboard/templates/_lib/align-template-with-company";
+import { ONE_MONTH_TEMPLATES, type OneMonthTemplate } from "@/lib/templates/one-month-templates";
+import { alignTemplateWithCompany } from "@/lib/templates/align-template-with-company";
 import { getAuthenticatedUser } from "@/lib/hubspot";
 import { MAX_USER_SAVED_TEMPLATES } from "@/lib/templates/max-saved-templates";
 import {

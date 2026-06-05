@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { parseIncomingSavedTemplate } from "@/app/user/dashboard/templates/_lib/parse-saved-template-payload";
+import { parseIncomingSavedTemplate } from "@/lib/templates/parse-saved-template-payload";
 import { getAuthenticatedUser } from "@/lib/hubspot";
 import { prisma } from "@/lib/prisma";
 import { workflowStepOneComplete } from "@/lib/workflow/workflow-progress";

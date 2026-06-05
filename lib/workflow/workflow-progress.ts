@@ -1,4 +1,4 @@
-import type { OneMonthTemplateStep } from "@/app/user/dashboard/templates/_lib/one-month-templates";
+import type { OneMonthTemplateStep } from "@/lib/templates/one-month-templates";
 import type { WorkflowTestStepResult } from "@/lib/workflow/test-sequence-send";
 
 /** True when step 1 of the playbook succeeded for all channels that step defines. */
