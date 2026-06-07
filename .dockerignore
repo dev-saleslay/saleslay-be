@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+.gitignore
+.env*
+*.md
+*.docx
+lib/generated/prisma
+prisma/migrations
+coverage
